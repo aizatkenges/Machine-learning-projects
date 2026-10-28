@@ -1,0 +1,67 @@
+
+name: ML Quality Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ml-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # PERSON 1: LINTER
+      - name: Install lint tools
+        run: python -m pip install ruff nbformat
+
+      - name: Lint Python files
+        run: ruff check . --select E4,E7,E9,F --exclude "*.ipynb"
+
+      - name: Validate Jupyter notebooks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import nbformat
+
+          notebooks = list(Path(".").rglob("*.ipynb"))
+          assert notebooks, "No notebooks found"
+
+          for path in notebooks:
+              notebook = nbformat.read(path, as_version=4)
+              nbformat.validate(notebook)
+              print(f"PASS: {path}")
+          PY
+
+      # PERSON 2: BUILD
+      - name: Install ML dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify ML environment
+        run: |
+          python -c "import numpy, pandas, sklearn; print('ML environment OK')"
+          pip check
+
+      # PERSON 3: ML TESTING
+      - name: Run ML tests
+        run: python -m pytest tests/ -v
+
+      # PERSON 4: SECURITY
+      - name: Check README
+        run: |
+          test -f README.md
+          grep -qi "project" README.md
+
+      - name: Security audit
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
