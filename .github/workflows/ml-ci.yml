@@ -1,0 +1,31 @@
+name: ML Quality Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tools
+        run: pip install ruff nbformat
+
+      - name: Lint notebooks
+        run: ruff check . --select E4,E7,E9,F
+
+      - name: Validate notebooks
+        run: |
+          python - <<'PY'
+          import nbformat
+          from pathlib import Path
+
+          for path in Path(".").glob("*.ipynb"):
+              nb = nbformat.read(path, as_version=4)
+              nbformat.validate(nb)
+              print(f"PASS: {path}")
+          PY
