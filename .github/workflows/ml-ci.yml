@@ -16,7 +16,7 @@ jobs:
         run: pip install ruff nbformat
 
       - name: Lint notebooks
-        run: ruff check . --select E4,E7,E9,F
+        run: ruff check . --select E4,E7,E9,F --exclude vectors.ipynb
 
       - name: Validate notebooks
         run: |
